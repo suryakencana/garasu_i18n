@@ -31,7 +31,7 @@ def custom_locale_negotiator(request):
     locales = settings.get('garasu_i18n.locales', ('en', 'es', 'it', 'id'))
     name = '_LOCALE_'
     locale_name = getattr(request, name, None)
-    # LOG.debug(locale_name)
+    LOG.debug(locale_name)
     if locale_name is None:
         locale_name = request.params.get(name)
         if locale_name is None:
@@ -43,7 +43,7 @@ def custom_locale_negotiator(request):
                     # If browser has no language configuration
                     # the default locale name is returned.
                     locale_name = request.registry.settings.default_locale_name
-    # LOG.debug(locale_name)
+    LOG.debug(locale_name)
     return locale_name
 
 

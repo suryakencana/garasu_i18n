@@ -86,9 +86,9 @@ def includeme(config):
     settings = config.get_settings()
     translation_dirs = settings.get('garasu_i18n.translation_dirs')
     config.add_translation_dirs(translation_dirs)
-    config.add_subscriber('add_renderer_globals',
+    config.add_subscriber('.add_renderer_globals',
                           'pyramid.events.BeforeRender')
-    config.add_subscriber('add_localizer',
+    config.add_subscriber('.add_localizer',
                           'pyramid.events.NewRequest')
 
     config.set_locale_negotiator(custom_locale_negotiator)

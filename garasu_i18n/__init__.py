@@ -1,8 +1,12 @@
 import logging
 from pyramid.httpexceptions import HTTPFound
-from pyramid.i18n import TranslationStringFactory, get_localizer
+from pyramid.i18n import TranslationStringFactory, get_localizer, make_localizer
 from pyramid.response import Response
 from pyramid.view import view_config
+from pyramid.threadlocal import get_current_registry
+from pyramid.threadlocal import get_current_request
+from pyramid.interfaces import ITranslationDirectories
+
 
 from garasu_i18n._version import get_version
 
@@ -12,6 +16,8 @@ __version__ = get_version()
 LOG = logging.getLogger(__name__)
 
 TranslationString = TranslationStringFactory('garasu_i18n')
+
+DEFAULT_LOCALE_NAME = 'en'
 
 
 def custom_locale_negotiator(request):
@@ -48,7 +54,7 @@ def custom_locale_negotiator(request):
 
 
 def add_renderer_globals(event):
-    request = event.get('request')
+    request = event.get('request') or get_current_request()
     event['_'] = request.translate
     event['localizer'] = request.localizer
 
@@ -61,6 +67,22 @@ def add_localizer(event):
         return localizer.translate(TranslationString(*args, **kwargs))
     request.localizer = localizer
     request.translate = auto_translate
+
+
+def _get_localizer_for_locale_name(locale_name):
+    registry = get_current_registry()
+    tdirs = registry.queryUtility(ITranslationDirectories, default=[])
+    return make_localizer(locale_name, tdirs)
+
+
+def translate(*args, **kwargs):
+    request = get_current_request()
+    if request is None:
+        localizer = _get_localizer_for_locale_name(DEFAULT_LOCALE_NAME)
+    else:
+        locale_name = DEFAULT_LOCALE_NAME
+        localizer = _get_localizer_for_locale_name(locale_name)
+    return localizer.translate(TranslationString(*args, **kwargs))
 
 
 @view_config(route_name='locale')

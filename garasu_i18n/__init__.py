@@ -1,4 +1,5 @@
 import logging
+from pkg_resources import resource_filename
 from pyramid.httpexceptions import HTTPFound
 from pyramid.i18n import TranslationStringFactory, get_localizer, make_localizer
 from pyramid.response import Response
@@ -6,6 +7,12 @@ from pyramid.view import view_config
 from pyramid.threadlocal import get_current_registry
 from pyramid.threadlocal import get_current_request
 from pyramid.interfaces import ITranslationDirectories
+from pyramid.settings import asbool
+
+try:
+    import deform
+except ImportError:
+    raise ImportError
 
 
 from garasu_i18n._version import get_version
@@ -15,7 +22,7 @@ __version__ = get_version()
 
 LOG = logging.getLogger(__name__)
 
-TranslationString = TranslationStringFactory('garasu_i18n')
+tsf = TranslationStringFactory('garasu_i18n')
 
 DEFAULT_LOCALE_NAME = 'en'
 
@@ -64,7 +71,7 @@ def add_localizer(event):
     localizer = get_localizer(request)
 
     def auto_translate(*args, **kwargs):
-        return localizer.translate(TranslationString(*args, **kwargs))
+        return localizer.translate(tsf(*args, **kwargs))
     request.localizer = localizer
     request.translate = auto_translate
 
@@ -80,9 +87,9 @@ def translate(*args, **kwargs):
     if request is None:
         localizer = _get_localizer_for_locale_name(DEFAULT_LOCALE_NAME)
     else:
-        locale_name = DEFAULT_LOCALE_NAME
+        locale_name = request.local_name
         localizer = _get_localizer_for_locale_name(locale_name)
-    return localizer.translate(TranslationString(*args, **kwargs))
+    return localizer.translate(tsf(*args, **kwargs))
 
 
 @view_config(route_name='locale')
@@ -106,14 +113,30 @@ def includeme(config):
 
     """
     settings = config.get_settings()
-    translation_dirs = settings.get('garasu_i18n.translation_dirs')
-    config.add_translation_dirs(translation_dirs)
+
     config.add_subscriber('.add_renderer_globals',
                           'pyramid.events.BeforeRender')
     config.add_subscriber('.add_localizer',
                           'pyramid.events.NewRequest')
 
     config.set_locale_negotiator(custom_locale_negotiator)
+
+    # combine deform
+    if asbool(settings.get('garasu_i18n.deform', False)):
+        deform_template_dir = resource_filename('deform', 'templates/')
+
+        zpt_renderer = deform.ZPTRendererFactory(
+            [deform_template_dir], translator=translate)
+
+        deform.Form.set_default_renderer(zpt_renderer)
+
+        config.add_translation_dirs('locale/')
+        config.add_translation_dirs('deform:locale/')
+        config.add_translation_dirs('colander:locale/')
+
     config.add_route('locale', '/locale/{language}')
+
+    translation_dirs = settings.get('garasu_i18n.translation_dirs')
+    config.add_translation_dirs(translation_dirs)
 
     config.scan(__name__)

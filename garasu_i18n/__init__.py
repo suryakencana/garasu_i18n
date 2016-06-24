@@ -130,7 +130,6 @@ def includeme(config):
 
         deform.Form.set_default_renderer(zpt_renderer)
 
-        config.add_translation_dirs('locale/')
         config.add_translation_dirs('deform:locale/')
         config.add_translation_dirs('colander:locale/')
 

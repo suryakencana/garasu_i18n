@@ -87,8 +87,7 @@ def translate(*args, **kwargs):
     if request is None:
         localizer = _get_localizer_for_locale_name(DEFAULT_LOCALE_NAME)
     else:
-        locale_name = request.local_name
-        localizer = _get_localizer_for_locale_name(locale_name)
+        localizer = request.localizer
     return localizer.translate(tsf(*args, **kwargs))
 
 
